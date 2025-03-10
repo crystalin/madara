@@ -47,20 +47,13 @@ jobs:
           prerelease: false
           body: ${{ steps.changelog.outputs.changes }}
 
-      - name: git status
-        run: |
-          git status
-          git log
-
       - name: Commit CHANGELOG.md
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
-          commit_message: "docs: update CHANGELOG.md for ${{ github.ref_name }} [skip ci]"
+          commit_message: "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
           create_branch: true
           file_pattern: CHANGELOG.md
-          
-
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
@@ -68,7 +61,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
           body: "This PR is automatically created by the release workflow."
-          head: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
+          branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
           base: main
 
   # Build binaries (rely on docker build for a clean build)
