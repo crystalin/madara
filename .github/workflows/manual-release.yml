@@ -11,7 +11,7 @@ on:
         required: true
         default: main
       fake-build:
-        description: if true, the build will not be done, useful for testing the release workflow
+        description: FAKE build. (only for testing the release workflow
         required: false
         default: false
         type: boolean
@@ -143,6 +143,11 @@ jobs:
           git remote -v
           echo "git status"
           git status
+
+          git checkout -b release/changelog-${{ github.event.inputs.tag || github.ref_name }}
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
+          git push origin release/changelog-${{ github.event.inputs.tag || github.ref_name }}
 
       - name: Commit CHANGELOG.md
         uses: stefanzweifel/git-auto-commit-action@v4
