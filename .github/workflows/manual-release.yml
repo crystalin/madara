@@ -58,6 +58,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           title: "docs: update CHANGELOG.md for ${{ github.ref_name }} [skip ci]"
           body: "This PR is automatically created by the release workflow."
           head: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
