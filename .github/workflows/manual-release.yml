@@ -56,7 +56,7 @@ jobs:
         run: |
           mkdir -p build
           wget https://github.com/madara-alliance/madara/releases/download/v0.7.0/madara-v0.7.0-x86_64 -O build/madara-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
-          cp build/madara build/orchestrator-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
+          cp build/madara-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }} build/orchestrator-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
