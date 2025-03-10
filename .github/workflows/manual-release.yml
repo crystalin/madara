@@ -33,7 +33,7 @@ jobs:
             echo "Branch release/changelog-${{ github.event.inputs.tag || github.ref_name }} does not exist"
           fi
 
-          gh release view ${{ github.event.inputs.tag || github.ref_name }}
+          gh release view ${{ github.event.inputs.tag || github.ref_name }} || echo "no releases"
           RELEASE_EXISTS=$(gh release view ${{ github.event.inputs.tag || github.ref_name }} --json name 2>/dev/null || echo "false")
           if [[ "$RELEASE_EXISTS" != "false" ]]; then
             echo "Release ${{ github.event.inputs.tag || github.ref_name }} already exists"
