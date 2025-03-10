@@ -19,6 +19,8 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.tag || github.ref_name }}
 
+      # We check if the release already exist
+      # This prevents conflit with branches and release drafts
       - name: Check if release already exists
         id: check_release
         run: |
