@@ -17,6 +17,17 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.tag || github.ref_name }}
 
+      - name: Check if release already exists
+        id: check_release
+        run: |
+          RELEASE_EXISTS=$(gh release view ${{ github.event.inputs.tag || github.ref_name }} --json name 2>/dev/null || echo "false")
+          if [[ "$RELEASE_EXISTS" != "false" ]]; then
+            echo "Release ${{ github.event.inputs.tag || github.ref_name }} already exists"
+            exit 1
+          else
+            echo "Release ${{ github.event.inputs.tag || github.ref_name }} does not exist"
+          fi
+
       - name: Update CHANGELOG
         id: changelog
         uses: requarks/changelog-action@v1
@@ -37,9 +48,17 @@ jobs:
       - name: Commit CHANGELOG.md
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          branch: main
+          branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
           commit_message: "docs: update CHANGELOG.md for ${{ github.ref_name }} [skip ci]"
           file_pattern: CHANGELOG.md
+          
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: "docs: update CHANGELOG.md for ${{ github.ref_name }} [skip ci]"
+          body: "This PR is automatically created by the release workflow."
+          head: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
+          base: main
 
   # Build binaries (rely on docker build for a clean build)
   build-binaries:
