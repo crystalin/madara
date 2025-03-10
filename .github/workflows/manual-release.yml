@@ -6,6 +6,15 @@ on:
       tag:
         description: tag (ex. v0.8.0) to generate release note from
         required: true
+      base:
+        description: base branch (ex. main)
+        required: true
+        default: main
+      fake-build:
+        description: if true, the build will not be done, useful for testing the release workflow
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   # Build binaries (rely on docker build for a clean build)
@@ -18,12 +27,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build production madara
+      - name: Build production madara*
+        if: ${{ github.event.inputs.fake-build == 'true' }}
         shell: bash
         run: |
           mkdir -p build
-          wget https://github.com/madara-alliance/madara/releases/download/v0.7.0/madara-v0.7.0-x86_64 -O build/madara-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
-          cp build/madara-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }} build/orchestrator-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
+          echo 'fake-binary' > build/madara-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
+          echo 'fake-binary' > build/orchestrator-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
+
+      - name: Build production madara
+        if: ${{ github.event.inputs.fake-build != 'true' }}
+        shell: bash
+        run: |
+          # We don't use volumes because of ownership/permissions issues
+          docker build \
+            --tag prod --no-cache \
+            --build-arg="COMMIT=${{ github.event.inputs.sha }}" \
+            --build-arg="SCARB_VERSION=${{ env.BUILD_SCARB_VERSION }}" \
+            --build-arg="PYTHON_VERSION=${{ env.BUILD_PYTHON_VERSION }}" \
+            --build-arg="FOUNDRY_VERSION=${{ env.BUILD_FOUNDRY_VERSION }}" \
+            --build-arg="RUSTFLAGS=-C target-cpu=${{ matrix.cpu }}" \
+            - < docker/madara-production.Dockerfile
+          # Copy madara/orchestrator binary
+          mkdir -p build
+          docker rm -f dummy 2> /dev/null | true
+          docker create -ti --name dummy prod bash
+          docker cp dummy:/madara/madara build/madara-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
+          docker cp dummy:/madara/orchestrator build/orchestrator-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
+          docker rm -f dummy
+          # Cleanup
+          docker rmi prod
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
@@ -109,4 +142,4 @@ jobs:
           title: "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
           body: "This PR is automatically created by the release workflow."
           branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
-          base: main
+          base: ${{ github.event.inputs.base }}
