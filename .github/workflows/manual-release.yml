@@ -7,7 +7,7 @@ on:
         description: tag (ex. v0.8.0) to generate release note from
         required: true
       base:
-        description: base branch (ex. main)
+        description: base branch (ex. main) to push changelog PR to
         required: true
         default: main
       fake-build:
