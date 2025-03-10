@@ -47,6 +47,11 @@ jobs:
           prerelease: false
           body: ${{ steps.changelog.outputs.changes }}
 
+      - name: git status
+        run: |
+          git status
+          git logs
+
       - name: Commit CHANGELOG.md
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
@@ -56,10 +61,6 @@ jobs:
           file_pattern: CHANGELOG.md
           
 
-      - name: git status
-        run: |
-          git status
-          git logs
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
