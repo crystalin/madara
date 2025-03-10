@@ -108,15 +108,6 @@ jobs:
           token: ${{ github.token }}
           tag: ${{ github.event.inputs.tag || github.ref_name }}
 
-      - name: Commit CHANGELOG.md
-        id: auto-commit-action
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
-          commit_message: "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
-          create_branch: true
-          file_pattern: CHANGELOG.md
-
       - name: "Run if changes have been detected"
         if: steps.auto-commit-action.outputs.changes_detected == 'true'
         run: echo "Changes!"
