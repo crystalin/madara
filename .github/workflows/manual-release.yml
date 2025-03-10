@@ -8,75 +8,6 @@ on:
         required: true
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.inputs.tag || github.ref_name }}
-
-      # We check if the release already exist
-      # This prevents conflit with branches and release drafts
-      - name: Check if release already exists
-        id: check_release
-        run: |
-          set -e
-          BRANCH_NAME="release/changelog-${{ github.event.inputs.tag || github.ref_name }}"
-          BRANCH_EXISTS=$(git branch -r | grep "/$BRANCH_NAME$")
-          if [[ "$BRANCH_EXISTS" != "" ]]; then
-            echo "Branch release/changelog-${{ github.event.inputs.tag || github.ref_name }} already exists"
-            exit 1
-          else
-            echo "Branch release/changelog-${{ github.event.inputs.tag || github.ref_name }} does not exist"
-          fi
-
-          gh release view ${{ github.event.inputs.tag || github.ref_name }} || echo "no releases"
-          RELEASE_EXISTS=$(gh release view ${{ github.event.inputs.tag || github.ref_name }} --json name 2>/dev/null || echo "false")
-          if [[ "$RELEASE_EXISTS" != "false" ]]; then
-            echo "Release ${{ github.event.inputs.tag || github.ref_name }} already exists"
-            exit 1
-          else
-            echo "Release ${{ github.event.inputs.tag || github.ref_name }} does not exist"
-          fi
-
-      - name: Update CHANGELOG
-        id: changelog
-        uses: requarks/changelog-action@v1
-        with:
-          token: ${{ github.token }}
-          tag: ${{ github.event.inputs.tag || github.ref_name }}
-
-      - name: Create GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ github.event.inputs.tag || github.ref_name }}
-          name: Release ${{ github.event.inputs.tag || github.ref_name }}
-          commit: ${{ github.sha }}
-          draft: true
-          prerelease: false
-          body: ${{ steps.changelog.outputs.changes }}
-
-      - name: Commit CHANGELOG.md
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
-          commit_message: "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
-          create_branch: true
-          file_pattern: CHANGELOG.md
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
-          body: "This PR is automatically created by the release workflow."
-          branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
-          base: main
-
   # Build binaries (rely on docker build for a clean build)
   build-binaries:
     runs-on: ubuntu-latest
@@ -100,10 +31,48 @@ jobs:
           name: binaries-${{ matrix.cpu }}
           path: build
 
-  attach-binaries:
-    needs: [create-release, build-binaries]
+  create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: build-binaries
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+
+      # We check if the release already exist
+      # This prevents conflit with branches and release drafts
+      - name: Check if release already exists
+        id: check_release
+        run: |
+          BRANCH_NAME="release/changelog-${{ github.event.inputs.tag || github.ref_name }}"
+          BRANCH_EXISTS=$(git branch -r | grep "/$BRANCH_NAME$" || true)
+          if [[ "$BRANCH_EXISTS" != "" ]]; then
+            echo "Branch release/changelog-${{ github.event.inputs.tag || github.ref_name }} already exists"
+            exit 1
+          else
+            echo "Branch release/changelog-${{ github.event.inputs.tag || github.ref_name }} does not exist"
+          fi
+
+          gh release view ${{ github.event.inputs.tag || github.ref_name }} || true
+          RELEASE_EXISTS=$(gh release view ${{ github.event.inputs.tag || github.ref_name }} --json name 2>/dev/null || echo "false")
+          if [[ "$RELEASE_EXISTS" != "false" ]]; then
+            echo "Release ${{ github.event.inputs.tag || github.ref_name }} already exists"
+            exit 1
+          else
+            echo "Release ${{ github.event.inputs.tag || github.ref_name }} does not exist"
+          fi
+
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          tag: ${{ github.event.inputs.tag || github.ref_name }}
+      
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -114,11 +83,30 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R build
 
-      - name: Attach binaries to release
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          files: |
-            build/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.tag || github.ref_name }}
+          artifacts: build/*
+          commit: ${{ github.sha }}
+          draft: true
+          prerelease: false
+          body: ${{ steps.changelog.outputs.changes }}
+
+      - name: Commit CHANGELOG.md
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
+          commit_message: "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
+          create_branch: true
+          file_pattern: CHANGELOG.md
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
+          body: "This PR is automatically created by the release workflow."
+          branch: release/changelog-${{ github.event.inputs.tag || github.ref_name }}
+          base: main
