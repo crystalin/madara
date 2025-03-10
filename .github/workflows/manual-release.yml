@@ -1,0 +1,88 @@
+name: Manual Release with Binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: tag (ex. v0.8.0) to generate release note from
+        required: true
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          tag: ${{ github.event.inputs.tag || github.ref_name }}
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.tag || github.ref_name }}
+          commit: ${{ github.sha }}
+          draft: true
+          prerelease: false
+          body: ${{ steps.changelog.outputs.changes }}
+
+      - name: Commit CHANGELOG.md
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: main
+          commit_message: "docs: update CHANGELOG.md for ${{ github.ref_name }} [skip ci]"
+          file_pattern: CHANGELOG.md
+
+  # Build binaries (rely on docker build for a clean build)
+  build-binaries:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cpu: ["x86-64"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build production madara
+        shell: bash
+        run: |
+          mkdir -p build
+          wget https://github.com/madara-alliance/madara/releases/download/v0.7.0/madara-v0.7.0-x86_64 -O build/madara-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
+          cp build/madara build/orchestrator-${{ github.event.inputs.tag || github.ref_name }}-${{ matrix.cpu }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.cpu }}
+          path: build
+
+  attach-binaries:
+    needs: [create-release, build-binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binaries-*
+          merge-multiple: true
+          path: build
+
+      - name: Display structure of downloaded files
+        run: ls -R build
+
+      - name: Attach binaries to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            build/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
