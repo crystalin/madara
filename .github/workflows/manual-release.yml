@@ -80,6 +80,8 @@ jobs:
       # This prevents conflit with branches and release drafts
       - name: Check if release already exists
         id: check_release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH_NAME="release/changelog-${{ github.event.inputs.tag || github.ref_name }}"
           BRANCH_EXISTS=$(git branch -r | grep "/$BRANCH_NAME$" || true)
@@ -126,6 +128,21 @@ jobs:
           draft: true
           prerelease: false
           body: ${{ steps.changelog.outputs.changes }}
+
+      - name: Debug
+        run: |
+          echo "git log"
+          git log
+          echo "git status"
+          git status
+          echo "git diff"
+          git diff
+          echo "git branch"
+          git branch
+          echo "git remote -v"
+          git remote -v
+          echo "git status"
+          git status
 
       - name: Commit CHANGELOG.md
         uses: stefanzweifel/git-auto-commit-action@v4
