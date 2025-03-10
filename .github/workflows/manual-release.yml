@@ -22,6 +22,16 @@ jobs:
       - name: Check if release already exists
         id: check_release
         run: |
+          export BRANCHES=$(git branch -r)
+          BRANCH_EXISTS=$(echo $BRANCHES | grep "release/changelog-${{ github.event.inputs.tag || github.ref_name }}")
+          if [[ "$BRANCH_EXISTS" != "" ]]; then
+            echo "Branch release/changelog-${{ github.event.inputs.tag || github.ref_name }} already exists"
+            exit 1
+          else
+            echo "Branch release/changelog-${{ github.event.inputs.tag || github.ref_name }} does not exist"
+          fi
+
+          gh release view ${{ github.event.inputs.tag || github.ref_name }}
           RELEASE_EXISTS=$(gh release view ${{ github.event.inputs.tag || github.ref_name }} --json name 2>/dev/null || echo "false")
           if [[ "$RELEASE_EXISTS" != "false" ]]; then
             echo "Release ${{ github.event.inputs.tag || github.ref_name }} already exists"
