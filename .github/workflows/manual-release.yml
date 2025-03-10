@@ -26,7 +26,7 @@ jobs:
         run: |
           set -e
           BRANCH_NAME="release/changelog-${{ github.event.inputs.tag || github.ref_name }}"
-          BRANCH_EXISTS=$(git branch -r | grep "/$BRANCH_NAME$"))
+          BRANCH_EXISTS=$(git branch -r | grep "/$BRANCH_NAME$")
           if [[ "$BRANCH_EXISTS" != "" ]]; then
             echo "Branch release/changelog-${{ github.event.inputs.tag || github.ref_name }} already exists"
             exit 1
