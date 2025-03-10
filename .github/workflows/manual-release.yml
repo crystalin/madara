@@ -129,28 +129,6 @@ jobs:
           prerelease: false
           body: ${{ steps.changelog.outputs.changes }}
 
-      - name: Debug
-        run: |
-          echo "git log"
-          git log -5
-          echo "git status"
-          git status
-          echo "git diff"
-          git diff
-          echo "git branch"
-          git branch
-          echo "git remote -v"
-          git remote -v
-          echo "git status"
-          git status
-
-          git config --global user.email "release-action@github.com"
-          git config --global user.name "Madara Release Bot"
-          git checkout -b release/changelog-${{ github.event.inputs.tag || github.ref_name }}
-          git add CHANGELOG.md
-          git commit -m "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
-          git push origin release/changelog-${{ github.event.inputs.tag || github.ref_name }}
-
       - name: Commit CHANGELOG.md
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
