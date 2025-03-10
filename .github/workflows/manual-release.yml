@@ -108,14 +108,6 @@ jobs:
           token: ${{ github.token }}
           tag: ${{ github.event.inputs.tag || github.ref_name }}
 
-      - name: "Run if changes have been detected"
-        if: steps.auto-commit-action.outputs.changes_detected == 'true'
-        run: echo "Changes!"
-
-      - name: "Run if no changes have been detected"
-        if: steps.auto-commit-action.outputs.changes_detected == 'false'
-        run: echo "No Changes!"
-
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
