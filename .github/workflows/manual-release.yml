@@ -74,7 +74,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.base }}
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
 
       # We check if the release already exist
       # This prevents conflit with branches and release drafts
