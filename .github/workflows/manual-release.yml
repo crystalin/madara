@@ -144,6 +144,8 @@ jobs:
           echo "git status"
           git status
 
+          git config --global user.email "release-action@github.com"
+          git config --global user.name "Madara Release Bot"
           git checkout -b release/changelog-${{ github.event.inputs.tag || github.ref_name }}
           git add CHANGELOG.md
           git commit -m "docs: update CHANGELOG.md for ${{ github.event.inputs.tag || github.ref_name }} [skip ci]"
