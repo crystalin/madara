@@ -72,7 +72,7 @@ jobs:
         with:
           token: ${{ github.token }}
           tag: ${{ github.event.inputs.tag || github.ref_name }}
-      
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
