@@ -132,7 +132,7 @@ jobs:
       - name: Debug
         run: |
           echo "git log"
-          git log
+          git log -5
           echo "git status"
           git status
           echo "git diff"
